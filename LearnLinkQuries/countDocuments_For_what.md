@@ -61,4 +61,36 @@ If you have 95 users in the database and you are displaying 10 users per page:
 - `User.countDocuments({})` returns `95`.
 - Total pages would be calculated as `Math.ceil(95 / 10)`, which equals `10` pages.
 
+## Non-Aggregation:-
+```typescript
+export const getAllCoursesForAdmin = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const page = parseInt(req.query.page as string, 10) || 1; 
+    const limit = parseInt(req.query.limit as string, 10) || 6; 
+    const skip = (page - 1) * limit;
+
+    const [courses, totalCourses] = await Promise.all([
+      Course.find()
+        .select('name thumbnail createdAt')
+        .populate('tutorId', 'name')
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit),
+      Course.countDocuments(),
+    ]);
+
+    res.json({
+      courses,
+      totalPages: Math.ceil(totalCourses / limit),
+      currentPage: page,
+    });
+  } catch (err) {
+    console.error('Error fetching courses:', err);
+    res.status(500).json({ error: 'Server error' });
+  }
+};
+
+
+```
+
 This allows the frontend to render pagination controls correctly, showing up to 10 pages with each page displaying up to 10 users.
